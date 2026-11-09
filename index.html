@@ -224,6 +224,15 @@
       }
       .prompt .hint-line { display: block; font-size: 13px; color: #7a6535; letter-spacing: 2px; margin-top: 2px; }
       .prompt .word-big { font-family: "Press Start 2P", monospace; font-size: .68em; letter-spacing: 0; }
+      .prompt .pos-tag {
+        display: inline-block; vertical-align: middle; margin-left: 10px;
+        padding: 3px 9px; background: #33270f; color: var(--gold);
+        border: 2px solid var(--gold-dark);
+        font-size: 15px; letter-spacing: 1px; white-space: nowrap;
+      }
+      .tile .pos-pre { font-size: .7em; color: #7a6535; margin-right: 6px; letter-spacing: 0; }
+      .tile .pos-suf { font-size: .62em; color: #7a6535; margin-left: 6px; letter-spacing: 0; }
+      .tile.placed .pos-pre, .tile.placed .pos-suf { color: #ffe9a8; }
       .answer-row {
         display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; align-items: center;
         min-height: 52px; margin: 10px 0 4px; padding: 8px;
@@ -480,6 +489,8 @@
           血量耗尽就倒下，势均力敌会<b>同归于尽、互相抵消</b>，赢家继续冲向城堡扣血。<br />
           <b>题型：</b><b>拼写</b>是按音节块拼出单词；<b>释义</b>更适合中小学生 —— 给中文点出英文单词，
           或给英文点出中文意思，四个选项点对一个就出兵；短语和造句则是按顺序拼词块。<br />
+          <b>词性标注：</b>拼写和释义题的单词都带词性，按词典格式标出 —— <b>n.</b> 名词、<b>vt.</b> 及物动词、
+          <b>vi.</b> 不及物动词、<b>adj.</b> 形容词、<b>adv.</b> 副词、<b>prep.</b> 介词、<b>pron.</b> 代词，认词顺便学词性。<br />
           <b>连击加成：</b>连对 2 题起得分和伤害递增；连击 3 额外派<b>骑士</b>（高血量），
           连击 5 派<b>法师</b>（远程攻击），连击 8 进入<b>狂热</b>双倍出兵。<br />
           <b>能量技能：</b>答对攒能量，满格后可放<b>火球术</b>（直伤敌方城堡）或<b>治疗术</b>（回复城堡）。
@@ -567,50 +578,61 @@
       ];
       /* 单词题（type: word）：按音节块拼单词，extra 为干扰音节块 */
       var WORD_BANK = [
-        { cn: "冒险", words: ["ad", "ven", "ture"], extra: ["cher", "ter"] },
-        { cn: "勇气", words: ["cou", "rage"], extra: ["bra", "ge"] },
-        { cn: "城堡", words: ["cas", "tle"], extra: ["stel", "sel"] },
-        { cn: "巨龙", words: ["dra", "gon"], extra: ["gan", "gen"] },
-        { cn: "森林", words: ["for", "est"], extra: ["rest", "ast"] },
-        { cn: "宝藏", words: ["trea", "sure"], extra: ["cher", "shure"] },
-        { cn: "胜利", words: ["vic", "to", "ry"], extra: ["win", "rey"] },
-        { cn: "旅程", words: ["jour", "ney"], extra: ["nay", "tri"] },
-        { cn: "神秘", words: ["mys", "te", "ry"], extra: ["mis", "rey"] },
-        { cn: "王国", words: ["king", "dom"], extra: ["dam", "land"] },
-        { cn: "战士", words: ["war", "ri", "or"], extra: ["wor", "er"] },
-        { cn: "盾牌", words: ["shi", "eld"], extra: ["she", "ild"] },
-        { cn: "药水", words: ["po", "tion"], extra: ["shun", "sion"] },
-        { cn: "巫师", words: ["wi", "zard"], extra: ["zerd", "sard"] },
-        { cn: "金色的", words: ["gol", "den"], extra: ["dan", "din"] },
-        { cn: "雷声", words: ["thun", "der"], extra: ["dar", "ter"] },
-        { cn: "水晶", words: ["crys", "tal"], extra: ["tel", "stil"] },
-        { cn: "灯笼", words: ["lan", "tern"], extra: ["tren", "ten"] },
-        { cn: "图书馆", words: ["li", "bra", "ry"], extra: ["bre", "rey"] },
-        { cn: "危险的", words: ["dan", "ger", "ous"], extra: ["gar", "us"] },
-        { cn: "重要的", words: ["im", "por", "tant"], extra: ["par", "tent"] },
-        { cn: "美丽的", words: ["beau", "ti", "ful"], extra: ["fell", "tif"] },
-        { cn: "高山", words: ["moun", "tain"], extra: ["tian", "tean"] },
-        { cn: "蝴蝶", words: ["but", "ter", "fly"], extra: ["flay", "tar"] }
+        { cn: "冒险", pos: "n.", words: ["ad", "ven", "ture"], extra: ["cher", "ter"] },
+        { cn: "勇气", pos: "n.", words: ["cou", "rage"], extra: ["bra", "ge"] },
+        { cn: "城堡", pos: "n.", words: ["cas", "tle"], extra: ["stel", "sel"] },
+        { cn: "巨龙", pos: "n.", words: ["dra", "gon"], extra: ["gan", "gen"] },
+        { cn: "森林", pos: "n.", words: ["for", "est"], extra: ["rest", "ast"] },
+        { cn: "宝藏", pos: "n.", words: ["trea", "sure"], extra: ["cher", "shure"] },
+        { cn: "胜利", pos: "n.", words: ["vic", "to", "ry"], extra: ["win", "rey"] },
+        { cn: "旅程", pos: "n.", words: ["jour", "ney"], extra: ["nay", "tri"] },
+        { cn: "神秘的事物", pos: "n.", words: ["mys", "te", "ry"], extra: ["mis", "rey"] },
+        { cn: "王国", pos: "n.", words: ["king", "dom"], extra: ["dam", "land"] },
+        { cn: "战士", pos: "n.", words: ["war", "ri", "or"], extra: ["wor", "er"] },
+        { cn: "盾牌", pos: "n.", words: ["shi", "eld"], extra: ["she", "ild"] },
+        { cn: "药水", pos: "n.", words: ["po", "tion"], extra: ["shun", "sion"] },
+        { cn: "巫师", pos: "n.", words: ["wi", "zard"], extra: ["zerd", "sard"] },
+        { cn: "金色的", pos: "adj.", words: ["gol", "den"], extra: ["dan", "din"] },
+        { cn: "雷声", pos: "n.", words: ["thun", "der"], extra: ["dar", "ter"] },
+        { cn: "水晶", pos: "n.", words: ["crys", "tal"], extra: ["tel", "stil"] },
+        { cn: "灯笼", pos: "n.", words: ["lan", "tern"], extra: ["tren", "ten"] },
+        { cn: "图书馆", pos: "n.", words: ["li", "bra", "ry"], extra: ["bre", "rey"] },
+        { cn: "危险的", pos: "adj.", words: ["dan", "ger", "ous"], extra: ["gar", "us"] },
+        { cn: "重要的", pos: "adj.", words: ["im", "por", "tant"], extra: ["par", "tent"] },
+        { cn: "美丽的", pos: "adj.", words: ["beau", "ti", "ful"], extra: ["fell", "tif"] },
+        { cn: "高山", pos: "n.", words: ["moun", "tain"], extra: ["tian", "tean"] },
+        { cn: "蝴蝶", pos: "n.", words: ["but", "ter", "fly"], extra: ["flay", "tar"] },
+        { cn: "倾听", pos: "vi.", words: ["lis", "ten"], extra: ["sen", "tin"] },
+        { cn: "保护", pos: "vt.", words: ["pro", "tect"], extra: ["tekt", "pore"] }
       ];
       /* 释义题库（type: cn2en / en2cn 共用）：中小学生核心词汇，整词四选一 */
       var MEANING_BANK = [
-        { en: "apple", cn: "苹果" }, { en: "banana", cn: "香蕉" }, { en: "orange", cn: "橙子" },
-        { en: "teacher", cn: "老师" }, { en: "friend", cn: "朋友" }, { en: "family", cn: "家庭" },
-        { en: "school", cn: "学校" }, { en: "library", cn: "图书馆" }, { en: "homework", cn: "家庭作业" },
-        { en: "breakfast", cn: "早餐" }, { en: "morning", cn: "早晨" }, { en: "weather", cn: "天气" },
-        { en: "happy", cn: "开心的" }, { en: "brave", cn: "勇敢的" }, { en: "clever", cn: "聪明的" },
-        { en: "kind", cn: "友善的" }, { en: "strong", cn: "强壮的" }, { en: "careful", cn: "细心的" },
-        { en: "adventure", cn: "冒险" }, { en: "castle", cn: "城堡" }, { en: "dragon", cn: "巨龙" },
-        { en: "treasure", cn: "宝藏" }, { en: "courage", cn: "勇气" }, { en: "victory", cn: "胜利" },
-        { en: "journey", cn: "旅程" }, { en: "kingdom", cn: "王国" }, { en: "forest", cn: "森林" },
-        { en: "mountain", cn: "高山" }, { en: "river", cn: "河流" }, { en: "rainbow", cn: "彩虹" },
-        { en: "winter", cn: "冬天" }, { en: "music", cn: "音乐" }, { en: "picture", cn: "图画" },
-        { en: "story", cn: "故事" }, { en: "dream", cn: "梦想" }, { en: "question", cn: "问题" },
-        { en: "answer", cn: "答案" }, { en: "animal", cn: "动物" }, { en: "garden", cn: "花园" },
-        { en: "window", cn: "窗户" }
+        { en: "apple", cn: "苹果", pos: "n." }, { en: "banana", cn: "香蕉", pos: "n." }, { en: "orange", cn: "橙子", pos: "n." },
+        { en: "teacher", cn: "老师", pos: "n." }, { en: "friend", cn: "朋友", pos: "n." }, { en: "family", cn: "家庭", pos: "n." },
+        { en: "school", cn: "学校", pos: "n." }, { en: "library", cn: "图书馆", pos: "n." }, { en: "homework", cn: "家庭作业", pos: "n." },
+        { en: "breakfast", cn: "早餐", pos: "n." }, { en: "morning", cn: "早晨", pos: "n." }, { en: "weather", cn: "天气", pos: "n." },
+        { en: "happy", cn: "开心的", pos: "adj." }, { en: "brave", cn: "勇敢的", pos: "adj." }, { en: "clever", cn: "聪明的", pos: "adj." },
+        { en: "kind", cn: "友善的", pos: "adj." }, { en: "strong", cn: "强壮的", pos: "adj." }, { en: "careful", cn: "细心的", pos: "adj." },
+        { en: "adventure", cn: "冒险", pos: "n." }, { en: "castle", cn: "城堡", pos: "n." }, { en: "dragon", cn: "巨龙", pos: "n." },
+        { en: "treasure", cn: "宝藏", pos: "n." }, { en: "courage", cn: "勇气", pos: "n." }, { en: "victory", cn: "胜利", pos: "n." },
+        { en: "journey", cn: "旅程", pos: "n." }, { en: "kingdom", cn: "王国", pos: "n." }, { en: "forest", cn: "森林", pos: "n." },
+        { en: "mountain", cn: "高山", pos: "n." }, { en: "river", cn: "河流", pos: "n." }, { en: "rainbow", cn: "彩虹", pos: "n." },
+        { en: "winter", cn: "冬天", pos: "n." }, { en: "music", cn: "音乐", pos: "n." }, { en: "picture", cn: "图画", pos: "n." },
+        { en: "story", cn: "故事", pos: "n." }, { en: "dream", cn: "梦想", pos: "n." }, { en: "question", cn: "问题", pos: "n." },
+        { en: "answer", cn: "答案", pos: "n." }, { en: "animal", cn: "动物", pos: "n." }, { en: "garden", cn: "花园", pos: "n." },
+        { en: "window", cn: "窗户", pos: "n." },
+        { en: "read", cn: "阅读；朗读", pos: "vt." }, { en: "write", cn: "写；写字", pos: "vt." }, { en: "draw", cn: "画画", pos: "vt." },
+        { en: "sing", cn: "唱歌", pos: "vt." }, { en: "help", cn: "帮助", pos: "vt." }, { en: "play", cn: "玩；踢（球）", pos: "vt." },
+        { en: "listen", cn: "倾听", pos: "vi." }, { en: "speak", cn: "说话", pos: "vi." }, { en: "run", cn: "跑步", pos: "vi." },
+        { en: "swim", cn: "游泳", pos: "vi." }, { en: "quickly", cn: "迅速地", pos: "adv." }, { en: "under", cn: "在……下面", pos: "prep." },
+        { en: "they", cn: "他们", pos: "pron." }
       ];
       var BANKS = { word: WORD_BANK, phrase: PHRASE_BANK, sentence: SENTENCE_BANK, cn2en: MEANING_BANK, en2cn: MEANING_BANK };
       var TYPE_NAMES = { word: "拼写", phrase: "短语", sentence: "造句", cn2en: "中文找英文", en2cn: "英文找中文" };
+      /* 词性：缩写 -> 中文全称（n. 名词 / vt. 及物动词 / vi. 不及物动词 / adj. 形容词 …） */
+      var POS_CN = { "n.": "名词", "vt.": "及物动词", "vi.": "不及物动词", "v.": "动词", "adj.": "形容词", "adv.": "副词", "prep.": "介词", "pron.": "代词", "num.": "数词", "conj.": "连词" };
+      function posLabel(pos) { return pos ? (pos + " " + (POS_CN[pos] || "")) : ""; }
+      function posTagHtml(pos) { return pos ? '<span class="pos-tag">' + esc(posLabel(pos)) + "</span>" : ""; }
 
       /* ================= 工具 ================= */
       function $(id) { return document.getElementById(id); }
@@ -813,12 +835,17 @@
         p.currentType = type;
         var raw = queueFor(p, type);
         if (type === "cn2en" || type === "en2cn") {
-          // 释义题：整词四选一，干扰项从词库里随机抽 3 个
+          // 释义题：整词四选一，干扰项从词库里随机抽 3 个；每个词都带词性（pos）
           var others = shuffle(MEANING_BANK.filter(function (m) { return m !== raw; })).slice(0, 3);
+          var tilePos = {};
           if (type === "cn2en") {
-            p.current = { cn: raw.cn, words: [raw.en], extra: others.map(function (m) { return m.en; }) };
+            tilePos[raw.en] = raw.pos;
+            others.forEach(function (m) { tilePos[m.en] = m.pos; });
+            p.current = { cn: raw.cn, pos: raw.pos, words: [raw.en], extra: others.map(function (m) { return m.en; }), tilePos: tilePos };
           } else {
-            p.current = { cn: raw.en, words: [raw.cn], extra: others.map(function (m) { return m.cn; }) };
+            tilePos[raw.cn] = raw.pos;
+            others.forEach(function (m) { tilePos[m.cn] = m.pos; });
+            p.current = { cn: raw.en, pos: raw.pos, words: [raw.cn], extra: others.map(function (m) { return m.cn; }), tilePos: tilePos };
           }
         } else {
           p.current = raw;
@@ -835,15 +862,15 @@
         var full = p.current.words.join(type === "word" ? "" : " ");
         var main, hint, answerHint;
         if (type === "word") {
-          main = esc(p.current.cn);
+          main = esc(p.current.cn) + posTagHtml(p.current.pos);
           hint = "按音节块拼出这个单词 · 共 " + full.length + " 个字母";
           answerHint = "点下面的音节块，拼出这个单词";
         } else if (type === "cn2en") {
-          main = esc(p.current.cn);
+          main = esc(p.current.cn) + posTagHtml(p.current.pos);
           hint = "选出对应的英文单词";
           answerHint = "点出对应的英文单词";
         } else if (type === "en2cn") {
-          main = '<span class="word-big">' + esc(p.current.cn) + "</span>";
+          main = '<span class="word-big">' + esc(p.current.cn) + "</span>" + posTagHtml(p.current.pos);
           hint = "选出这个单词的中文意思";
           answerHint = "点出对应的中文意思";
         } else {
@@ -868,7 +895,17 @@
           b.type = "button";
           b.className = "tile";
           if (p.currentType === "word" || p.currentType === "cn2en") b.classList.add("en");
-          b.textContent = w.text;
+          var tp = p.current.tilePos && p.current.tilePos[w.text];
+          if (tp && p.currentType === "en2cn") {
+            b.innerHTML = '<span class="pos-pre">' + esc(tp) + "</span>" + esc(w.text);
+            b.dataset.display = tp + " " + w.text;
+          } else if (tp && p.currentType === "cn2en") {
+            b.innerHTML = esc(w.text) + '<span class="pos-suf">' + esc(tp) + "</span>";
+            b.dataset.display = w.text + " " + tp;
+          } else {
+            b.textContent = w.text;
+            b.dataset.display = w.text;
+          }
           b.dataset.word = w.text;
           b.dataset.correct = w.correct ? "1" : "0";
           if (settings.mode === "pvp" || team === "red") {
@@ -892,7 +929,7 @@
         chip.type = "button";
         chip.className = "tile placed";
         if (p.currentType === "word" || p.currentType === "cn2en") chip.classList.add("en");
-        chip.textContent = btn.dataset.word;
+        chip.textContent = btn.dataset.display || btn.dataset.word;
         chip.addEventListener("click", function () { unplaceFrom(p, chip); });
         $("answer-" + p.team).appendChild(chip);
         beep(440 + p.placed.length * 40, .06, "square", .04, 0);
