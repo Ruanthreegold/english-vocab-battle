@@ -1,0 +1,1469 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <title>英语词汇对战小游戏</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --red: #e8483f;
+        --red-dark: #8f1d16;
+        --red-deep: #4a130f;
+        --blue: #3f8fe8;
+        --blue-dark: #17457e;
+        --blue-deep: #0f2447;
+        --ink: #f2e8ce;
+        --ink-soft: #b8ab8d;
+        --night: #17122b;
+        --stone: #2c2547;
+        --stone-2: #3a3159;
+        --parchment: #efe0b8;
+        --parchment-ink: #33270f;
+        --gold: #f7b731;
+        --gold-dark: #9c6b0e;
+        --good: #4fce6e;
+        --bad: #ff5a4e;
+        --energy: #b45cf0;
+        --px-border: #0b0817;
+      }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: "DotGothic16", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--ink);
+        background: var(--night);
+        overflow-x: hidden;
+        user-select: none;
+      }
+      .en { font-family: "Press Start 2P", "DotGothic16", monospace; }
+      button { font-family: inherit; cursor: pointer; }
+      .hidden { display: none !important; }
+
+      /* 像素描边面板：硬阴影 + 内高光，不用圆角 */
+      .px-panel {
+        background: var(--stone);
+        border: 4px solid var(--px-border);
+        box-shadow: inset 0 0 0 3px var(--stone-2), inset 0 0 0 6px rgba(0,0,0,.35), 0 6px 0 rgba(0,0,0,.5);
+      }
+      .px-btn {
+        border: 3px solid var(--px-border);
+        box-shadow: inset -3px -3px 0 rgba(0,0,0,.28), inset 3px 3px 0 rgba(255,255,255,.18), 0 4px 0 rgba(0,0,0,.55);
+        color: var(--ink);
+        background: var(--stone-2);
+        font-weight: 400;
+      }
+      .px-btn:active { transform: translateY(3px); box-shadow: inset -3px -3px 0 rgba(0,0,0,.28), 0 1px 0 rgba(0,0,0,.55); }
+      .px-btn:disabled { opacity: .42; cursor: not-allowed; transform: none; }
+
+      #game { display: flex; flex-direction: column; height: 100dvh; min-height: 560px; }
+
+      /* ============ 顶部状态条 ============ */
+      #hud {
+        display: grid; grid-template-columns: 1fr auto 1fr; align-items: start;
+        gap: 10px; padding: 8px 12px;
+        background: #120d21;
+        border-bottom: 4px solid var(--px-border);
+        z-index: 5;
+      }
+      .team-hud { min-width: 0; }
+      .team-hud .name-row {
+        display: flex; align-items: baseline; gap: 8px;
+        font-size: clamp(15px, 2.2vw, 21px); white-space: nowrap;
+      }
+      .team-hud .score { font-size: 12px; color: var(--ink-soft); }
+      .team-hud.blue .name-row { flex-direction: row-reverse; }
+      .hpbar {
+        position: relative; height: clamp(16px, 2.6vh, 22px); margin-top: 5px;
+        background: #08060f; border: 3px solid var(--px-border);
+        box-shadow: inset 0 0 0 2px #453b6e;
+      }
+      .hpfill { position: absolute; inset: 0 auto 0 0; width: 100%; transition: width .45s steps(12); }
+      .team-hud.red .hpfill { background: repeating-linear-gradient(90deg, #ff6b5e 0 14px, #e8483f 14px 28px); }
+      .team-hud.blue .hpfill { background: repeating-linear-gradient(90deg, #63a8ff 0 14px, #3f8fe8 14px 28px); left: auto; right: 0; }
+      .hptext {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        font-family: "Press Start 2P", monospace; font-size: 10px; color: #fff;
+        text-shadow: 2px 2px 0 rgba(0,0,0,.7);
+      }
+      .energy-row { display: flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 12px; color: var(--ink-soft); }
+      .team-hud.blue .energy-row { flex-direction: row-reverse; }
+      .epips { display: flex; gap: 3px; }
+      .epip { width: 15px; height: 9px; background: #241b40; border: 2px solid var(--px-border); }
+      .epip.on { background: var(--energy); box-shadow: 0 0 6px var(--energy); }
+      #hud-center { text-align: center; }
+      #timer {
+        font-family: "Press Start 2P", monospace;
+        font-size: clamp(17px, 3vw, 28px); line-height: 1;
+        padding: 9px 14px 7px; min-width: 118px;
+        background: #08060f; color: var(--gold);
+        border: 3px solid var(--px-border); box-shadow: inset 0 0 0 2px #453b6e;
+      }
+      #timer.low { color: #ff5a4e; animation: pxPulse .5s steps(2) infinite alternate; }
+      @keyframes pxPulse { from { transform: scale(1); } to { transform: scale(1.06); } }
+      #event-banner {
+        margin-top: 5px; font-size: 13px; color: var(--gold); min-height: 1.2em;
+        text-shadow: 1px 1px 0 #000;
+      }
+      #hud-btns { display: flex; gap: 6px; justify-content: center; margin-top: 5px; }
+      .icon-btn { font-size: 13px; padding: 4px 10px; }
+
+      /* ============ 战场 ============ */
+      #field {
+        position: relative; flex: 0 0 31%; min-height: 158px; overflow: hidden;
+        background: linear-gradient(180deg, #141b3d 0%, #1d2650 46%, #274a35 46.2%, #1e3a29 78%, #4a3520 78.2%, #3a2a18 100%);
+        border-bottom: 4px solid var(--px-border);
+        image-rendering: pixelated;
+      }
+      .star { position: absolute; width: 3px; height: 3px; background: #fff8d6; opacity: .85; }
+      .moon {
+        position: absolute; top: 8%; right: 16%; width: 30px; height: 30px;
+        background: #f7ead0; box-shadow: 0 0 0 3px #d9c491, 6px 6px 0 -2px rgba(0,0,0,.14) inset;
+      }
+      .mount { position: absolute; bottom: 54%; width: 0; height: 0; opacity: .9; }
+      .pine { position: absolute; bottom: 46%; image-rendering: pixelated; }
+      .castle { position: absolute; bottom: 15%; width: clamp(88px, 13vw, 148px); z-index: 2; image-rendering: pixelated; }
+      .castle.red { left: 1.2%; }
+      .castle.blue { right: 1.2%; }
+      .castle.hit { animation: castleShake .4s steps(6); filter: brightness(1.6); }
+      @keyframes castleShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-6px); }
+        50% { transform: translateX(5px); }
+        75% { transform: translateX(-4px); }
+      }
+      .castle.destroyed { filter: grayscale(.8) brightness(.6); transform: rotate(-4deg) translateY(8px); }
+      .torch { position: absolute; bottom: 34%; width: 6px; height: 6px; background: #ffb03a; z-index: 3; animation: flick .3s steps(2) infinite alternate; box-shadow: 0 0 10px 3px rgba(255,150,40,.55); }
+      @keyframes flick { from { transform: scale(1); } to { transform: scale(1.45); background: #ffdf57; } }
+      #ground-line { position: absolute; left: 0; right: 0; bottom: 15%; border-top: 3px dashed rgba(247,231,160,.28); }
+      .soldier { position: absolute; width: 34px; height: 46px; z-index: 3; will-change: left; image-rendering: pixelated; }
+      .soldier svg { display: block; width: 100%; height: 100%; }
+      .soldier .minihp {
+        position: absolute; left: 50%; top: -8px; transform: translateX(-50%);
+        display: flex; gap: 2px;
+      }
+      .soldier .minihp i { width: 7px; height: 5px; background: #59e06e; border: 1px solid #000; display: block; }
+      .soldier .minihp i.lost { background: #3a3a3a; }
+      .soldier.fighting { animation: fightBob .16s steps(2) infinite alternate; }
+      @keyframes fightBob { from { margin-bottom: 0; } to { margin-bottom: 3px; } }
+      .soldier.dead { animation: die .45s steps(5) forwards; }
+      @keyframes die { to { transform: rotate(84deg) translateY(12px); opacity: 0; } }
+      .soldier.spawn { animation: spawnIn .3s steps(3); }
+      @keyframes spawnIn { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      .slash {
+        position: absolute; z-index: 4; font-family: "Press Start 2P", monospace;
+        font-size: 13px; color: #ffe45e; text-shadow: 2px 2px 0 #7a4a00;
+        animation: boomAnim .5s steps(5) forwards; pointer-events: none;
+      }
+      .dmgnum {
+        position: absolute; z-index: 5; font-family: "Press Start 2P", monospace; font-size: 11px;
+        color: #ff8a7a; text-shadow: 2px 2px 0 #000; animation: floatUp .8s steps(8) forwards; pointer-events: none;
+      }
+      .boom {
+        position: absolute; z-index: 4; font-size: 26px; color: #ffdf57;
+        text-shadow: 2px 2px 0 #c2570b, 0 0 8px #ff8c1a;
+        animation: boomAnim .55s steps(6) forwards; pointer-events: none;
+      }
+      @keyframes boomAnim {
+        0% { transform: scale(.4); opacity: 0; }
+        30% { transform: scale(1.3); opacity: 1; }
+        100% { transform: scale(1.6) translateY(-14px); opacity: 0; }
+      }
+      .float-score {
+        position: absolute; z-index: 6; font-family: "Press Start 2P", monospace;
+        font-size: clamp(13px, 2.2vw, 20px); pointer-events: none;
+        animation: floatUp 1s steps(10) forwards; text-shadow: 2px 2px 0 #000;
+      }
+      .float-score.red { color: #ff8a7a; }
+      .float-score.blue { color: #8ac2ff; }
+      @keyframes floatUp {
+        0% { transform: translateY(6px); opacity: 0; }
+        20% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-50px); opacity: 0; }
+      }
+      #mid-banner {
+        position: absolute; left: 50%; top: 12%; transform: translateX(-50%);
+        z-index: 7; font-size: clamp(15px, 2.6vw, 23px); color: var(--gold);
+        background: rgba(8,6,15,.82); border: 3px solid var(--gold-dark); padding: 6px 16px;
+        text-shadow: 2px 2px 0 #000; white-space: nowrap;
+        animation: floatUp 2.6s steps(12) forwards; pointer-events: none;
+      }
+
+      /* ============ 答题区 ============ */
+      #panels { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+      .panel { padding: 10px 14px 12px; display: flex; flex-direction: column; min-width: 0; overflow: hidden; position: relative; }
+      .panel.red { background: linear-gradient(180deg, #2e1a2e, #241426); border-right: 4px solid var(--px-border); }
+      .panel.blue { background: linear-gradient(180deg, #16283f, #101c2e); }
+      .panel-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+      .team-tag {
+        font-size: clamp(14px, 2vw, 19px); color: #fff; padding: 3px 12px;
+        border: 3px solid var(--px-border); text-shadow: 1px 1px 0 rgba(0,0,0,.6);
+        box-shadow: inset -3px -3px 0 rgba(0,0,0,.3), inset 3px 3px 0 rgba(255,255,255,.2);
+      }
+      .panel.red .team-tag { background: var(--red); }
+      .panel.blue .team-tag { background: var(--blue); }
+      .q-meta { font-size: clamp(12px, 1.5vw, 15px); color: var(--ink-soft); }
+      .q-type {
+        font-size: 12px; padding: 2px 8px; border: 2px solid var(--gold-dark); color: var(--gold);
+        background: rgba(0,0,0,.35);
+      }
+      .combo { margin-left: auto; font-size: clamp(13px, 1.7vw, 17px); color: var(--gold); text-shadow: 1px 1px 0 #000; min-height: 1.2em; text-align: right; }
+      .combo .tier { display: block; font-size: 12px; color: #ff9d5c; }
+      .prompt {
+        background: var(--parchment); color: var(--parchment-ink);
+        border: 4px solid var(--px-border);
+        box-shadow: inset 0 0 0 3px #d9c491, 0 4px 0 rgba(0,0,0,.45);
+        text-align: center; font-size: clamp(21px, 3.4vw, 33px);
+        padding: 8px 10px; letter-spacing: 1px;
+      }
+      .prompt .hint-line { display: block; font-size: 13px; color: #7a6535; letter-spacing: 2px; margin-top: 2px; }
+      .prompt .word-big { font-family: "Press Start 2P", monospace; font-size: .68em; letter-spacing: 0; }
+      .answer-row {
+        display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; align-items: center;
+        min-height: 52px; margin: 10px 0 4px; padding: 8px;
+        background: rgba(0,0,0,.32); border: 3px dashed rgba(242,232,206,.35);
+      }
+      .answer-row:empty::after { content: var(--ah, "点下面的词块，拼出正确的英文"); color: var(--ink-soft); font-size: 14px; }
+      .tiles { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-content: flex-start; margin-top: 8px; }
+      .tile {
+        border: 3px solid var(--px-border);
+        background: #efe6cd; color: #2c2110;
+        box-shadow: inset -3px -3px 0 rgba(0,0,0,.16), inset 3px 3px 0 rgba(255,255,255,.55), 0 4px 0 rgba(0,0,0,.5);
+        font-size: clamp(16px, 2.4vw, 24px); padding: 8px 13px; min-height: 50px;
+        position: relative; letter-spacing: .5px;
+      }
+      .tile:active { transform: translateY(3px); box-shadow: inset -3px -3px 0 rgba(0,0,0,.16), 0 1px 0 rgba(0,0,0,.5); }
+      .tile.used { visibility: hidden; }
+      .tile .key-hint {
+        position: absolute; top: -9px; left: -7px; width: 19px; height: 19px;
+        background: #08060f; color: var(--gold); border: 2px solid var(--gold-dark);
+        font-family: "Press Start 2P", monospace; font-size: 9px;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .tile.placed { color: #fff; text-shadow: 1px 1px 0 rgba(0,0,0,.5); }
+      .panel.red .tile.placed { background: var(--red); }
+      .panel.blue .tile.placed { background: var(--blue); }
+      .tile.wrong-flash { animation: wrongShake .35s steps(4); background: #ff9a8a !important; color: #6d0d05 !important; }
+      @keyframes wrongShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+      .panel.correct-flash .prompt { animation: correctPop .4s steps(4); box-shadow: inset 0 0 0 3px var(--good), 0 4px 0 rgba(0,0,0,.45); }
+      @keyframes correctPop { 40% { transform: scale(1.04); } }
+      .panel-actions { margin-top: auto; display: flex; justify-content: center; align-items: center; gap: 8px; padding-top: 8px; flex-wrap: wrap; }
+      .clear-btn { font-size: 13px; padding: 6px 14px; }
+      .skill-btn { font-size: 13px; padding: 6px 12px; }
+      .skill-btn.fire { background: #7a2d12; color: #ffd9a8; }
+      .skill-btn.heal { background: #1d4d2a; color: #b9ffc9; }
+      .panel.locked { pointer-events: none; }
+      .cpu-note { text-align: center; font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
+
+      /* ============ 遮罩层 ============ */
+      .overlay {
+        position: fixed; inset: 0; z-index: 50; background: rgba(10, 7, 22, .88);
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 18px 14px; overflow-y: auto;
+      }
+      .card {
+        background: var(--stone); color: var(--ink);
+        border: 4px solid var(--px-border);
+        box-shadow: inset 0 0 0 3px var(--stone-2), inset 0 0 0 6px rgba(0,0,0,.35), 0 8px 0 rgba(0,0,0,.55);
+        padding: clamp(18px, 3.5vw, 32px); width: min(700px, 100%); text-align: center; margin: auto 0;
+      }
+      .card h1 { margin: 0 0 4px; font-size: clamp(26px, 5vw, 42px); letter-spacing: 2px; text-shadow: 3px 3px 0 rgba(0,0,0,.55); }
+      .card h1 .vs-red { color: #ff7a6e; }
+      .card h1 .vs-blue { color: #7ab5ff; }
+      .card h1 .vs-gold { color: var(--gold); }
+      .card .sub { color: var(--ink-soft); margin: 0 0 16px; font-size: clamp(14px, 2vw, 17px); }
+      .opt-group { margin-bottom: 14px; text-align: left; }
+      .opt-group .opt-title { font-size: 15px; margin-bottom: 8px; color: var(--gold); letter-spacing: 1px; }
+      .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+      .seg button {
+        flex: 1 1 auto; padding: 9px 8px; font-size: clamp(14px, 2vw, 17px);
+      }
+      .seg button small { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 3px; }
+      .seg button.sel-red { background: var(--red-deep); box-shadow: inset 0 0 0 3px var(--red), 0 4px 0 rgba(0,0,0,.55); }
+      .seg button.sel-blue { background: var(--blue-deep); box-shadow: inset 0 0 0 3px var(--blue), 0 4px 0 rgba(0,0,0,.55); }
+      .seg button.sel-gold { background: #4a3508; box-shadow: inset 0 0 0 3px var(--gold), 0 4px 0 rgba(0,0,0,.55); }
+      .name-row-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .name-field { text-align: left; }
+      .name-field label { display: block; font-size: 13px; margin-bottom: 5px; }
+      .name-field input {
+        width: 100%; font-family: inherit; font-size: 16px; padding: 9px 10px;
+        background: #0d0a1a; color: var(--ink); border: 3px solid var(--px-border);
+        box-shadow: inset 0 0 0 2px #453b6e; outline: none;
+      }
+      .name-field.red label { color: #ff9a8a; }
+      .name-field.blue label { color: #9cc4ff; }
+      #start-btn, .big-btn {
+        width: 100%; border: 3px solid var(--px-border);
+        background: linear-gradient(180deg, #ffc93a, #e8890c); color: #3a2400;
+        font-size: clamp(19px, 3.2vw, 25px); padding: 13px; letter-spacing: 4px;
+        box-shadow: inset -4px -4px 0 rgba(0,0,0,.22), inset 4px 4px 0 rgba(255,255,255,.35), 0 6px 0 #7a4a00;
+      }
+      #start-btn:active, .big-btn:active { transform: translateY(4px); box-shadow: inset -4px -4px 0 rgba(0,0,0,.22), 0 2px 0 #7a4a00; }
+      .ghost-btn { width: 100%; margin-top: 10px; padding: 10px; font-size: 16px; letter-spacing: 2px; }
+      .howto {
+        text-align: left; font-size: 13.5px; line-height: 1.8; color: var(--ink-soft);
+        background: rgba(0,0,0,.3); border: 3px solid rgba(0,0,0,.5); padding: 10px 14px; margin-top: 16px;
+      }
+      .howto b { color: var(--gold); }
+      #countdown-num { font-family: "Press Start 2P", monospace; font-size: clamp(70px, 18vw, 150px); color: var(--gold); text-shadow: 5px 5px 0 #000; animation: cdPop .8s steps(6) ease; margin: auto; }
+      @keyframes cdPop { 0% { transform: scale(.3); opacity: 0; } 35% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+      #winner-banner { font-size: clamp(30px, 6vw, 52px); margin: 0 0 6px; letter-spacing: 2px; text-shadow: 3px 3px 0 rgba(0,0,0,.55); }
+      #winner-banner.red { color: #ff7a6e; }
+      #winner-banner.blue { color: #7ab5ff; }
+      #winner-banner.draw { color: var(--ink-soft); }
+      .stat-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 7px 14px; align-items: center; margin: 16px 0 20px; }
+      .stat-grid .lab { color: var(--ink-soft); font-size: 14px; }
+      .stat-grid .rv { color: #ff8a7a; font-size: clamp(18px, 3.2vw, 25px); text-align: right; }
+      .stat-grid .bv { color: #8ac2ff; font-size: clamp(18px, 3.2vw, 25px); text-align: left; }
+      .end-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+      .end-btns button { flex: 1 1 140px; padding: 12px; font-size: clamp(15px, 2.4vw, 19px); letter-spacing: 2px; }
+      #again-btn { background: linear-gradient(180deg, #ffc93a, #e8890c); color: #3a2400; border: 3px solid var(--px-border); box-shadow: inset -4px -4px 0 rgba(0,0,0,.22), 0 5px 0 #7a4a00; }
+      /* 排行榜 */
+      .lb-table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: clamp(14px, 2.2vw, 17px); }
+      .lb-table th, .lb-table td { padding: 8px 6px; border-bottom: 3px solid rgba(0,0,0,.4); text-align: center; }
+      .lb-table th { color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+      .lb-table td.name { text-align: left; }
+      .lb-table tr.top1 td { color: var(--gold); }
+      .lb-empty { color: var(--ink-soft); padding: 22px 0; font-size: 15px; line-height: 1.8; }
+      .lb-note { font-size: 12.5px; color: var(--ink-soft); }
+
+      @media (max-width: 700px) {
+        #game { min-height: 0; }
+        #field { flex-basis: 24%; min-height: 124px; }
+        #panels { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+        .panel.red { border-right: none; border-bottom: 4px solid var(--px-border); }
+        .panel { padding: 7px 10px 9px; }
+        .prompt { font-size: clamp(18px, 5.4vw, 25px); padding: 5px 8px; }
+        .tile { min-height: 42px; font-size: 15px; padding: 5px 9px; }
+        .answer-row { min-height: 42px; margin: 6px 0 2px; padding: 5px; }
+        .castle { width: 76px; }
+        .soldier { width: 28px; height: 38px; }
+        .name-row-inputs { grid-template-columns: 1fr 1fr; }
+        #timer { min-width: 92px; }
+        .epip { width: 11px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .torch, .soldier.fighting, #timer.low { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game">
+      <!-- 顶部状态条 -->
+      <div id="hud">
+        <div class="team-hud red">
+          <div class="name-row"><span id="hud-name-red">红队</span><span class="score">得分 <span id="score-red">0</span></span></div>
+          <div class="hpbar"><div class="hpfill" id="hp-red"></div><div class="hptext" id="hptext-red">100</div></div>
+          <div class="energy-row"><span>能量</span><span class="epips" id="epips-red"></span></div>
+        </div>
+        <div id="hud-center">
+          <div id="timer">03:00</div>
+          <div id="event-banner"></div>
+          <div id="hud-btns">
+            <button class="icon-btn px-btn" id="pause-btn" type="button">暂停</button>
+            <button class="icon-btn px-btn" id="sound-btn" type="button">音效：开</button>
+          </div>
+        </div>
+        <div class="team-hud blue">
+          <div class="name-row"><span class="score">得分 <span id="score-blue">0</span></span><span id="hud-name-blue">蓝队</span></div>
+          <div class="hpbar"><div class="hpfill" id="hp-blue"></div><div class="hptext" id="hptext-blue">100</div></div>
+          <div class="energy-row"><span>能量</span><span class="epips" id="epips-blue"></span></div>
+        </div>
+      </div>
+
+      <!-- 战场 -->
+      <div id="field">
+        <div class="moon"></div>
+        <div id="ground-line"></div>
+        <div class="castle red" id="castle-red"></div>
+        <div class="castle blue" id="castle-blue"></div>
+        <div class="torch" style="left:12.5%;"></div>
+        <div class="torch" style="right:12.5%;"></div>
+        <div id="soldiers"></div>
+        <div id="fx"></div>
+      </div>
+
+      <!-- 答题区 -->
+      <div id="panels">
+        <section class="panel red" id="panel-red" aria-label="红队答题区">
+          <div class="panel-head">
+            <span class="team-tag" id="tag-red">红队</span>
+            <span class="q-type" id="qtype-red">短语</span>
+            <span class="q-meta" id="qmeta-red">第 1 题</span>
+            <span class="combo" id="combo-red"></span>
+          </div>
+          <div class="prompt" id="prompt-red">准备开始</div>
+          <div class="answer-row" id="answer-red"></div>
+          <div class="tiles" id="tiles-red"></div>
+          <div class="panel-actions">
+            <button class="skill-btn px-btn fire" id="skill-fire-red" type="button" disabled>火球术 · 3能量</button>
+            <button class="skill-btn px-btn heal" id="skill-heal-red" type="button" disabled>治疗术 · 2能量</button>
+            <button class="clear-btn px-btn" id="clear-red" type="button">清除重拼</button>
+          </div>
+        </section>
+        <section class="panel blue" id="panel-blue" aria-label="蓝队答题区">
+          <div class="panel-head">
+            <span class="team-tag" id="tag-blue">蓝队</span>
+            <span class="q-type" id="qtype-blue">短语</span>
+            <span class="q-meta" id="qmeta-blue">第 1 题</span>
+            <span class="combo" id="combo-blue"></span>
+          </div>
+          <div class="prompt" id="prompt-blue">准备开始</div>
+          <div class="answer-row" id="answer-blue"></div>
+          <div class="tiles" id="tiles-blue"></div>
+          <div class="cpu-note hidden" id="cpu-note">电脑正在思考……</div>
+          <div class="panel-actions">
+            <button class="skill-btn px-btn fire" id="skill-fire-blue" type="button" disabled>火球术 · 3能量</button>
+            <button class="skill-btn px-btn heal" id="skill-heal-blue" type="button" disabled>治疗术 · 2能量</button>
+            <button class="clear-btn px-btn" id="clear-blue" type="button">清除重拼</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 开始界面 -->
+    <div class="overlay" id="start-screen">
+      <div class="card">
+        <h1>词汇<span class="vs-gold">城堡</span><span class="vs-red">攻</span><span class="vs-blue">防</span>战</h1>
+        <p class="sub">像素中世纪魔幻对战 —— 拼单词、选释义，出兵攻城！</p>
+        <div class="opt-group">
+          <div class="opt-title">◆ 骑士名号（会记入排行榜）</div>
+          <div class="name-row-inputs">
+            <div class="name-field red"><label for="name-red">红队名字</label><input id="name-red" type="text" maxlength="8" value="红队骑士" /></div>
+            <div class="name-field blue"><label for="name-blue">蓝队名字</label><input id="name-blue" type="text" maxlength="8" value="蓝队骑士" /></div>
+          </div>
+        </div>
+        <div class="opt-group">
+          <div class="opt-title">◆ 对战模式</div>
+          <div class="seg" id="mode-seg">
+            <button type="button" data-mode="pvp" class="px-btn sel-red">双人对战<small>两人同屏，一起抢答</small></button>
+            <button type="button" data-mode="cpu" class="px-btn">单人练习<small>你打红队，电脑打蓝队</small></button>
+          </div>
+        </div>
+        <div class="opt-group hidden" id="diff-group">
+          <div class="opt-title">◆ 电脑难度</div>
+          <div class="seg" id="diff-seg">
+            <button type="button" data-diff="easy" class="px-btn">轻松<small>电脑答得慢</small></button>
+            <button type="button" data-diff="normal" class="px-btn sel-blue">适中<small>势均力敌</small></button>
+            <button type="button" data-diff="hard" class="px-btn">挑战<small>电脑手速很快</small></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <div class="opt-title">◆ 题目类型</div>
+          <div class="seg" id="qtype-seg">
+            <button type="button" data-qtype="mix" class="px-btn sel-gold">混合<small>全部题型随机出</small></button>
+            <button type="button" data-qtype="word" class="px-btn">拼写<small>按音节块拼单词</small></button>
+            <button type="button" data-qtype="cn2en" class="px-btn">中文找英文<small>给中文，选英文单词</small></button>
+            <button type="button" data-qtype="en2cn" class="px-btn">英文找中文<small>给英文，选中文意思</small></button>
+            <button type="button" data-qtype="phrase" class="px-btn">短语<small>拼核心短语</small></button>
+            <button type="button" data-qtype="sentence" class="px-btn">造句<small>拼完整句子</small></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <div class="opt-title">◆ 对局时长</div>
+          <div class="seg" id="time-seg">
+            <button type="button" data-time="90" class="px-btn">90 秒<small>热身局</small></button>
+            <button type="button" data-time="180" class="px-btn sel-gold">3 分钟<small>标准局</small></button>
+            <button type="button" data-time="300" class="px-btn">5 分钟<small>耐力局</small></button>
+          </div>
+        </div>
+        <button id="start-btn" type="button">开始对战</button>
+        <button class="ghost-btn px-btn" id="lb-open-btn" type="button">排行榜 · 本场战绩</button>
+        <div class="howto">
+          <b>怎么玩：</b>按提示答题，答对派出小兵，<b>小兵会在中线互相对砍</b>：
+          血量耗尽就倒下，势均力敌会<b>同归于尽、互相抵消</b>，赢家继续冲向城堡扣血。<br />
+          <b>题型：</b><b>拼写</b>是按音节块拼出单词；<b>释义</b>更适合中小学生 —— 给中文点出英文单词，
+          或给英文点出中文意思，四个选项点对一个就出兵；短语和造句则是按顺序拼词块。<br />
+          <b>连击加成：</b>连对 2 题起得分和伤害递增；连击 3 额外派<b>骑士</b>（高血量），
+          连击 5 派<b>法师</b>（远程攻击），连击 8 进入<b>狂热</b>双倍出兵。<br />
+          <b>能量技能：</b>答对攒能量，满格后可放<b>火球术</b>（直伤敌方城堡）或<b>治疗术</b>（回复城堡）。
+          战斗中还会吹响<b>冲锋号角</b>：10 秒内出兵翻倍。<br />
+          <b>双人小提示：</b>红队键盘 <b>1–8</b>，蓝队 <b>Q W E R T Y U I</b> 选词。
+        </div>
+      </div>
+    </div>
+
+    <!-- 排行榜 -->
+    <div class="overlay hidden" id="lb-screen">
+      <div class="card">
+        <h1>荣誉<span class="vs-gold">排行榜</span></h1>
+        <p class="sub">按胜场、总分排名 —— 和朋友连打几局，分个高下</p>
+        <div id="lb-body"></div>
+        <p class="lb-note">排行榜记录本次打开页面期间的对局战绩，关掉页面会清空。</p>
+        <button class="big-btn" id="lb-close-btn" type="button">返回</button>
+      </div>
+    </div>
+
+    <!-- 倒计时 -->
+    <div class="overlay hidden" id="countdown-screen" style="background: rgba(8, 5, 18, .45);">
+      <div id="countdown-num">3</div>
+    </div>
+
+    <!-- 结算界面 -->
+    <div class="overlay hidden" id="end-screen">
+      <div class="card">
+        <p id="winner-banner">红队获胜！</p>
+        <p class="sub" id="end-reason">蓝队城堡被攻破</p>
+        <div class="stat-grid">
+          <span class="rv" id="stat-score-red">0</span><span class="lab">得分</span><span class="bv" id="stat-score-blue">0</span>
+          <span class="rv" id="stat-right-red">0</span><span class="lab">答对题数</span><span class="bv" id="stat-right-blue">0</span>
+          <span class="rv" id="stat-acc-red">0%</span><span class="lab">正确率</span><span class="bv" id="stat-acc-blue">0%</span>
+          <span class="rv" id="stat-combo-red">0</span><span class="lab">最高连击</span><span class="bv" id="stat-combo-blue">0</span>
+          <span class="rv" id="stat-kill-red">0</span><span class="lab">击破小兵</span><span class="bv" id="stat-kill-blue">0</span>
+          <span class="rv" id="stat-hp-red">0</span><span class="lab">剩余血量</span><span class="bv" id="stat-hp-blue">0</span>
+        </div>
+        <div class="end-btns">
+          <button id="again-btn" type="button">再来一局</button>
+          <button id="end-lb-btn" class="px-btn" type="button">看排行榜</button>
+          <button id="menu-btn" class="px-btn" type="button">换个模式</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+      /* ================= 题库 ================= */
+      /* 短语题（type: phrase） */
+      var PHRASE_BANK = [
+        { cn: "告诫某人不要做某事", words: ["warn", "sb.", "not", "to do", "sth."], extra: ["don't", "does"] },
+        { cn: "期待做某事", words: ["look forward", "to", "doing", "sth."], extra: ["do", "did"] },
+        { cn: "阻止某人做某事", words: ["stop", "sb.", "from", "doing", "sth."], extra: ["to do", "for"] },
+        { cn: "帮助某人做某事", words: ["help", "sb.", "do", "sth."], extra: ["does", "doing"] },
+        { cn: "花时间做某事", words: ["spend", "time", "doing", "sth."], extra: ["do", "cost"] },
+        { cn: "决定做某事", words: ["decide", "to do", "sth."], extra: ["doing", "does"] },
+        { cn: "对音乐感兴趣", words: ["be interested", "in", "music"], extra: ["on", "at"] },
+        { cn: "擅长游泳", words: ["be good", "at", "swimming"], extra: ["in", "swim"] },
+        { cn: "忙于做作业", words: ["be busy", "doing", "homework"], extra: ["do", "busy in"] },
+        { cn: "习惯于早起", words: ["be used to", "getting up", "early"], extra: ["get up", "late"] },
+        { cn: "多亏了你的帮助", words: ["Thanks to", "your", "help"], extra: ["for", "helps"] },
+        { cn: "照顾宝宝", words: ["take care of", "the baby"], extra: ["look", "babies"] },
+        { cn: "到达机场", words: ["arrive", "at", "the airport"], extra: ["in", "to"] },
+        { cn: "为考试做准备", words: ["get ready", "for", "the exam"], extra: ["to", "of"] },
+        { cn: "因……而出名", words: ["be famous", "for", "sth."], extra: ["as", "of"] },
+        { cn: "和……相处融洽", words: ["get on well", "with", "sb."], extra: ["in", "at"] },
+        { cn: "最好做某事", words: ["had better", "do", "sth."], extra: ["does", "doing"] }
+      ];
+      /* 造句题（type: sentence） */
+      var SENTENCE_BANK = [
+        { cn: "这本书值得一读", words: ["This book", "is worth", "reading"], extra: ["read", "reads"] },
+        { cn: "轮到你打扫教室了", words: ["It's", "your turn", "to clean", "the classroom"], extra: ["cleans", "turns"] },
+        { cn: "他花两小时做完作业", words: ["It took", "him", "two hours", "to finish", "homework"], extra: ["spends", "her"] },
+        { cn: "我想喝点东西", words: ["I'd like", "something", "to drink"], extra: ["anything", "drinks"] },
+        { cn: "记得锁门", words: ["Remember", "to lock", "the door"], extra: ["locking", "doors"] },
+        { cn: "天气越来越冷了", words: ["It's", "getting", "colder", "and colder"], extra: ["cold", "warmer"] },
+        { cn: "不要放弃", words: ["Never", "give up"], extra: ["gives", "down"] },
+        { cn: "我每天步行去学校", words: ["I", "walk", "to school", "every day"], extra: ["walks", "yesterday"] },
+        { cn: "他正在做作业", words: ["He", "is doing", "his", "homework"], extra: ["does", "her"] },
+        { cn: "我们应该多喝水", words: ["We", "should", "drink", "more", "water"], extra: ["drinks", "milk"] },
+        { cn: "她昨天买了一本书", words: ["She", "bought", "a book", "yesterday"], extra: ["buys", "tomorrow"] },
+        { cn: "请不要迟到", words: ["Please", "don't", "be", "late"], extra: ["isn't", "early"] },
+        { cn: "他高兴地笑了", words: ["He", "laughed", "happily"], extra: ["happy", "sadly"] }
+      ];
+      /* 单词题（type: word）：按音节块拼单词，extra 为干扰音节块 */
+      var WORD_BANK = [
+        { cn: "冒险", words: ["ad", "ven", "ture"], extra: ["cher", "ter"] },
+        { cn: "勇气", words: ["cou", "rage"], extra: ["bra", "ge"] },
+        { cn: "城堡", words: ["cas", "tle"], extra: ["stel", "sel"] },
+        { cn: "巨龙", words: ["dra", "gon"], extra: ["gan", "gen"] },
+        { cn: "森林", words: ["for", "est"], extra: ["rest", "ast"] },
+        { cn: "宝藏", words: ["trea", "sure"], extra: ["cher", "shure"] },
+        { cn: "胜利", words: ["vic", "to", "ry"], extra: ["win", "rey"] },
+        { cn: "旅程", words: ["jour", "ney"], extra: ["nay", "tri"] },
+        { cn: "神秘", words: ["mys", "te", "ry"], extra: ["mis", "rey"] },
+        { cn: "王国", words: ["king", "dom"], extra: ["dam", "land"] },
+        { cn: "战士", words: ["war", "ri", "or"], extra: ["wor", "er"] },
+        { cn: "盾牌", words: ["shi", "eld"], extra: ["she", "ild"] },
+        { cn: "药水", words: ["po", "tion"], extra: ["shun", "sion"] },
+        { cn: "巫师", words: ["wi", "zard"], extra: ["zerd", "sard"] },
+        { cn: "金色的", words: ["gol", "den"], extra: ["dan", "din"] },
+        { cn: "雷声", words: ["thun", "der"], extra: ["dar", "ter"] },
+        { cn: "水晶", words: ["crys", "tal"], extra: ["tel", "stil"] },
+        { cn: "灯笼", words: ["lan", "tern"], extra: ["tren", "ten"] },
+        { cn: "图书馆", words: ["li", "bra", "ry"], extra: ["bre", "rey"] },
+        { cn: "危险的", words: ["dan", "ger", "ous"], extra: ["gar", "us"] },
+        { cn: "重要的", words: ["im", "por", "tant"], extra: ["par", "tent"] },
+        { cn: "美丽的", words: ["beau", "ti", "ful"], extra: ["fell", "tif"] },
+        { cn: "高山", words: ["moun", "tain"], extra: ["tian", "tean"] },
+        { cn: "蝴蝶", words: ["but", "ter", "fly"], extra: ["flay", "tar"] }
+      ];
+      /* 释义题库（type: cn2en / en2cn 共用）：中小学生核心词汇，整词四选一 */
+      var MEANING_BANK = [
+        { en: "apple", cn: "苹果" }, { en: "banana", cn: "香蕉" }, { en: "orange", cn: "橙子" },
+        { en: "teacher", cn: "老师" }, { en: "friend", cn: "朋友" }, { en: "family", cn: "家庭" },
+        { en: "school", cn: "学校" }, { en: "library", cn: "图书馆" }, { en: "homework", cn: "家庭作业" },
+        { en: "breakfast", cn: "早餐" }, { en: "morning", cn: "早晨" }, { en: "weather", cn: "天气" },
+        { en: "happy", cn: "开心的" }, { en: "brave", cn: "勇敢的" }, { en: "clever", cn: "聪明的" },
+        { en: "kind", cn: "友善的" }, { en: "strong", cn: "强壮的" }, { en: "careful", cn: "细心的" },
+        { en: "adventure", cn: "冒险" }, { en: "castle", cn: "城堡" }, { en: "dragon", cn: "巨龙" },
+        { en: "treasure", cn: "宝藏" }, { en: "courage", cn: "勇气" }, { en: "victory", cn: "胜利" },
+        { en: "journey", cn: "旅程" }, { en: "kingdom", cn: "王国" }, { en: "forest", cn: "森林" },
+        { en: "mountain", cn: "高山" }, { en: "river", cn: "河流" }, { en: "rainbow", cn: "彩虹" },
+        { en: "winter", cn: "冬天" }, { en: "music", cn: "音乐" }, { en: "picture", cn: "图画" },
+        { en: "story", cn: "故事" }, { en: "dream", cn: "梦想" }, { en: "question", cn: "问题" },
+        { en: "answer", cn: "答案" }, { en: "animal", cn: "动物" }, { en: "garden", cn: "花园" },
+        { en: "window", cn: "窗户" }
+      ];
+      var BANKS = { word: WORD_BANK, phrase: PHRASE_BANK, sentence: SENTENCE_BANK, cn2en: MEANING_BANK, en2cn: MEANING_BANK };
+      var TYPE_NAMES = { word: "拼写", phrase: "短语", sentence: "造句", cn2en: "中文找英文", en2cn: "英文找中文" };
+
+      /* ================= 工具 ================= */
+      function $(id) { return document.getElementById(id); }
+      function shuffle(a) {
+        var arr = a.slice();
+        for (var i = arr.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+        }
+        return arr;
+      }
+      function fmtTime(s) {
+        var m = Math.floor(s / 60), r = s % 60;
+        return (m < 10 ? "0" + m : m) + ":" + (r < 10 ? "0" + r : r);
+      }
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+
+      /* ================= 音效（WebAudio 合成，8-bit 风） ================= */
+      var audioCtx = null, soundOn = true;
+      function beep(freq, dur, type, vol, when) {
+        if (!soundOn) return;
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          var t = audioCtx.currentTime + (when || 0);
+          var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.type = type || "square"; o.frequency.value = freq;
+          g.gain.setValueAtTime(vol || 0.07, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start(t); o.stop(t + dur);
+        } catch (e) { /* 无音频环境时静默 */ }
+      }
+      function sndCorrect() { beep(660, .1, "square", .06, 0); beep(990, .14, "square", .06, .08); }
+      function sndWrong() { beep(150, .22, "sawtooth", .06, 0); }
+      function sndHit() { beep(120, .14, "square", .09, 0); beep(65, .2, "sine", .13, 0); }
+      function sndSlash() { beep(300 + Math.random() * 200, .07, "sawtooth", .045, 0); }
+      function sndFire() { beep(200, .3, "sawtooth", .08, 0); beep(90, .35, "square", .07, .05); }
+      function sndHeal() { [523, 659, 784].forEach(function (f, i) { beep(f, .14, "sine", .07, i * .09); }); }
+      function sndHorn() { [392, 392, 587].forEach(function (f, i) { beep(f, .18, "square", .07, i * .14); }); }
+      function sndWin() { [523, 659, 784, 1047].forEach(function (f, i) { beep(f, .22, "square", .07, i * .13); }); }
+
+      /* ================= 像素美术（内联 SVG，crispEdges） ================= */
+      function castleSVG(main, dark, roof, flag) {
+        return '<svg viewBox="0 0 120 110" width="100%" shape-rendering="crispEdges" aria-hidden="true">' +
+          '<rect x="8" y="34" width="22" height="66" fill="' + main + '"/>' +
+          '<rect x="90" y="34" width="22" height="66" fill="' + main + '"/>' +
+          '<rect x="30" y="48" width="60" height="52" fill="' + main + '"/>' +
+          '<rect x="4" y="26" width="30" height="10" fill="' + dark + '"/>' +
+          '<rect x="86" y="26" width="30" height="10" fill="' + dark + '"/>' +
+          '<rect x="26" y="40" width="68" height="10" fill="' + dark + '"/>' +
+          '<rect x="8" y="34" width="4" height="66" fill="rgba(0,0,0,.18)"/>' +
+          '<rect x="94" y="34" width="4" height="66" fill="rgba(0,0,0,.18)"/>' +
+          '<polygon points="2,28 19,4 36,28" fill="' + roof + '"/>' +
+          '<polygon points="84,28 101,4 118,28" fill="' + roof + '"/>' +
+          '<rect x="49" y="16" width="22" height="30" fill="' + main + '"/>' +
+          '<polygon points="45,18 60,0 75,18" fill="' + roof + '"/>' +
+          '<rect x="59" y="0" width="3" height="14" fill="#5b4632"/>' +
+          '<polygon points="62,1 76,4 62,8" fill="' + flag + '"/>' +
+          '<rect x="52" y="72" width="16" height="28" fill="#2c1c10"/>' +
+          '<rect x="14" y="48" width="9" height="13" fill="#ffe9a8"/>' +
+          '<rect x="97" y="48" width="9" height="13" fill="#ffe9a8"/>' +
+          '<rect x="55" y="56" width="10" height="12" fill="#ffe9a8"/>' +
+          '</svg>';
+      }
+      $("castle-red").innerHTML = castleSVG("#9aa3b8", "#5d6a86", "#8f1d16", "#e8483f");
+      $("castle-blue").innerHTML = castleSVG("#9aa3b8", "#5d6a86", "#17457e", "#3f8fe8");
+
+      /* 像素小兵精灵：步兵 / 骑士 / 法师 */
+      function spriteSVG(team, kind) {
+        var c = team === "red"
+          ? { armor: "#e8483f", dark: "#8f1d16", plume: "#ffd23e" }
+          : { armor: "#3f8fe8", dark: "#17457e", plume: "#7ae0ff" };
+        var flip = team === "blue" ? ' transform="translate(34,0) scale(-1,1)"' : "";
+        var head = '<rect x="13" y="4" width="9" height="8" fill="#ffd9b3"/>';
+        var body = "";
+        if (kind === "knight") {
+          body =
+            '<rect x="11" y="0" width="13" height="5" fill="' + c.dark + '"/>' +
+            '<rect x="22" y="0" width="4" height="9" fill="' + c.plume + '"/>' +
+            '<rect x="12" y="12" width="11" height="15" fill="' + c.armor + '"/>' +
+            '<rect x="12" y="18" width="11" height="3" fill="' + c.dark + '"/>' +
+            '<rect x="4" y="13" width="7" height="11" fill="' + c.dark + '"/>' +
+            '<rect x="5" y="14" width="5" height="4" fill="' + c.plume + '"/>' +
+            '<rect x="25" y="10" width="3" height="14" fill="#d8dee9"/>' +
+            '<rect x="23" y="22" width="7" height="3" fill="#8a6d1d"/>' +
+            '<rect x="12" y="27" width="4" height="9" fill="#4a4238"/>' +
+            '<rect x="19" y="27" width="4" height="9" fill="#4a4238"/>';
+        } else if (kind === "mage") {
+          body =
+            '<polygon points="17,0 10,11 25,11" fill="' + c.dark + '"/>' +
+            '<rect x="16" y="0" width="3" height="3" fill="' + c.plume + '"/>' +
+            '<rect x="11" y="12" width="13" height="19" fill="' + c.dark + '"/>' +
+            '<rect x="14" y="16" width="7" height="6" fill="' + c.armor + '"/>' +
+            '<rect x="27" y="6" width="3" height="26" fill="#7a5230"/>' +
+            '<rect x="26" y="2" width="5" height="5" fill="' + c.plume + '"/>' +
+            '<rect x="12" y="31" width="4" height="5" fill="#33270f"/>' +
+            '<rect x="19" y="31" width="4" height="5" fill="#33270f"/>';
+        } else {
+          body =
+            '<rect x="12" y="1" width="11" height="5" fill="' + c.dark + '"/>' +
+            '<rect x="12" y="12" width="11" height="13" fill="' + c.armor + '"/>' +
+            '<rect x="24" y="11" width="3" height="13" fill="#d8dee9"/>' +
+            '<rect x="22" y="22" width="7" height="3" fill="#8a6d1d"/>' +
+            '<rect x="5" y="13" width="6" height="9" fill="' + c.dark + '"/>' +
+            '<rect x="12" y="25" width="4" height="10" fill="#4a4238"/>' +
+            '<rect x="19" y="25" width="4" height="10" fill="#4a4238"/>';
+        }
+        return '<svg viewBox="0 0 34 38" shape-rendering="crispEdges" aria-hidden="true"><g' + flip + '>' + head + body + '</g></svg>';
+      }
+
+      /* 战场装饰：星星与松树 */
+      (function decorate() {
+        var field = $("field");
+        for (var i = 0; i < 26; i++) {
+          var s = document.createElement("div");
+          s.className = "star";
+          s.style.left = (Math.random() * 98) + "%";
+          s.style.top = (Math.random() * 38) + "%";
+          s.style.opacity = 0.35 + Math.random() * 0.6;
+          field.appendChild(s);
+        }
+        var pine = '<svg viewBox="0 0 20 30" width="100%" shape-rendering="crispEdges"><rect x="6" y="8" width="8" height="4" fill="#1e4630"/><rect x="4" y="12" width="12" height="4" fill="#26573c"/><rect x="2" y="16" width="16" height="5" fill="#1e4630"/><rect x="8" y="21" width="4" height="7" fill="#4a3520"/></svg>';
+        for (var k = 0; k < 7; k++) {
+          var t = document.createElement("div");
+          t.className = "pine";
+          var w = 16 + Math.random() * 14;
+          t.style.width = w + "px";
+          t.style.left = (20 + Math.random() * 60) + "%";
+          t.innerHTML = pine;
+          field.appendChild(t);
+        }
+      })();
+
+      /* ================= 游戏状态 ================= */
+      var MAXHP = 100, MAXENERGY = 6;
+      var settings = { mode: "pvp", diff: "normal", time: 180, qtype: "mix" };
+      var names = { red: "红队骑士", blue: "蓝队骑士" };
+      var G = null; // 当前对局
+
+      /* 排行榜（本次打开页面期间的内存战绩） */
+      var leaderboard = {}; // key: 名字|队伍色 -> {name, team, wins, matches, score, right, bestCombo}
+      function lbRecord(p, won, drawn) {
+        var key = p.name + "|" + p.team;
+        var e = leaderboard[key] || (leaderboard[key] = { name: p.name, team: p.team, wins: 0, matches: 0, score: 0, right: 0, bestCombo: 0 });
+        e.matches++;
+        if (won) e.wins++;
+        if (drawn) e.wins += 0; // 平局不记胜场
+        e.score += p.score;
+        e.right += p.right;
+        e.bestCombo = Math.max(e.bestCombo, p.maxCombo);
+      }
+      function renderLeaderboard() {
+        var rows = Object.keys(leaderboard).map(function (k) { return leaderboard[k]; });
+        rows.sort(function (a, b) {
+          return (b.wins - a.wins) || (b.score - a.score) || (b.right - a.right);
+        });
+        var body = $("lb-body");
+        if (!rows.length) {
+          body.innerHTML = '<div class="lb-empty">暂无战绩 —— 先打一局，你的名字就会刻上荣誉榜。</div>';
+          return;
+        }
+        var html = '<table class="lb-table"><tr><th>名次</th><th style="text-align:left;">骑士</th><th>胜场</th><th>场次</th><th>总分</th><th>答对</th><th>最高连击</th></tr>';
+        rows.slice(0, 10).forEach(function (e, i) {
+          html += '<tr class="' + (i === 0 ? "top1" : "") + '"><td>' + (i + 1) + '</td>' +
+            '<td class="name">' + (i === 0 ? "♛ " : "") + esc(e.name) +
+            ' <span style="color:' + (e.team === "red" ? "#ff8a7a" : "#8ac2ff") + ';font-size:12px;">' + (e.team === "red" ? "红队" : "蓝队") + '</span></td>' +
+            '<td>' + e.wins + '</td><td>' + e.matches + '</td><td>' + e.score + '</td><td>' + e.right + '</td><td>×' + e.bestCombo + '</td></tr>';
+        });
+        html += "</table>";
+        body.innerHTML = html;
+      }
+
+      function newPlayer(team) {
+        return {
+          team: team, name: names[team],
+          hp: MAXHP, score: 0, energy: 0,
+          right: 0, wrong: 0, combo: 0, maxCombo: 0, kills: 0,
+          queues: {}, qIndex: {}, qNum: 0,
+          current: null, currentType: null, placed: [], locked: false,
+          cpuTimer: null, cpuInterval: null
+        };
+      }
+      function queueFor(p, type) {
+        if (!p.queues[type] || p.qIndex[type] >= p.queues[type].length) {
+          p.queues[type] = shuffle(BANKS[type].map(function (_, i) { return i; }));
+          p.qIndex[type] = 0;
+        }
+        return BANKS[type][p.queues[type][p.qIndex[type]++]];
+      }
+
+      /* ================= 题目 ================= */
+      function nextQuestion(p) {
+        var type = settings.qtype;
+        if (type === "mix") type = ["word", "phrase", "sentence", "cn2en", "en2cn"][Math.floor(Math.random() * 5)];
+        p.currentType = type;
+        var raw = queueFor(p, type);
+        if (type === "cn2en" || type === "en2cn") {
+          // 释义题：整词四选一，干扰项从词库里随机抽 3 个
+          var others = shuffle(MEANING_BANK.filter(function (m) { return m !== raw; })).slice(0, 3);
+          if (type === "cn2en") {
+            p.current = { cn: raw.cn, words: [raw.en], extra: others.map(function (m) { return m.en; }) };
+          } else {
+            p.current = { cn: raw.en, words: [raw.cn], extra: others.map(function (m) { return m.cn; }) };
+          }
+        } else {
+          p.current = raw;
+        }
+        p.qNum++;
+        p.placed = [];
+        p.locked = false;
+        renderQuestion(p);
+      }
+
+      function renderQuestion(p) {
+        var team = p.team;
+        var type = p.currentType;
+        var full = p.current.words.join(type === "word" ? "" : " ");
+        var main, hint, answerHint;
+        if (type === "word") {
+          main = esc(p.current.cn);
+          hint = "按音节块拼出这个单词 · 共 " + full.length + " 个字母";
+          answerHint = "点下面的音节块，拼出这个单词";
+        } else if (type === "cn2en") {
+          main = esc(p.current.cn);
+          hint = "选出对应的英文单词";
+          answerHint = "点出对应的英文单词";
+        } else if (type === "en2cn") {
+          main = '<span class="word-big">' + esc(p.current.cn) + "</span>";
+          hint = "选出这个单词的中文意思";
+          answerHint = "点出对应的中文意思";
+        } else {
+          main = esc(p.current.cn);
+          hint = "拼出对应的英文";
+          answerHint = "点下面的词块，拼出正确的英文";
+        }
+        $("prompt-" + team).innerHTML = main + '<span class="hint-line">' + hint + "</span>";
+        $("qtype-" + team).textContent = TYPE_NAMES[p.currentType];
+        $("qmeta-" + team).textContent = "第 " + p.qNum + " 题 · 已答对 " + p.right + " 题";
+        var answerRow = $("answer-" + team);
+        answerRow.innerHTML = "";
+        answerRow.style.setProperty("--ah", '"' + answerHint + '"');
+        var tilesEl = $("tiles-" + team);
+        tilesEl.innerHTML = "";
+        var words = p.current.words.map(function (w) { return { text: w, correct: true }; })
+          .concat(p.current.extra.map(function (w) { return { text: w, correct: false }; }));
+        words = shuffle(words);
+        var keys = team === "red" ? "12345678" : "QWERTYUI";
+        words.forEach(function (w, i) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "tile";
+          if (p.currentType === "word" || p.currentType === "cn2en") b.classList.add("en");
+          b.textContent = w.text;
+          b.dataset.word = w.text;
+          b.dataset.correct = w.correct ? "1" : "0";
+          if (settings.mode === "pvp" || team === "red") {
+            var hint = document.createElement("span");
+            hint.className = "key-hint";
+            hint.textContent = keys[i] || "";
+            if (keys[i]) b.appendChild(hint);
+          }
+          b.addEventListener("click", function () { pickTile(p, b); });
+          tilesEl.appendChild(b);
+        });
+        updateCombo(p);
+      }
+
+      function pickTile(p, btn) {
+        if (!G || !G.running || G.paused || p.locked) return;
+        if (btn.classList.contains("used")) return;
+        btn.classList.add("used");
+        p.placed.push(btn);
+        var chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "tile placed";
+        if (p.currentType === "word" || p.currentType === "cn2en") chip.classList.add("en");
+        chip.textContent = btn.dataset.word;
+        chip.addEventListener("click", function () { unplaceFrom(p, chip); });
+        $("answer-" + p.team).appendChild(chip);
+        beep(440 + p.placed.length * 40, .06, "square", .04, 0);
+        if (p.placed.length === p.current.words.length) {
+          setTimeout(function () { checkAnswer(p); }, 220);
+        }
+      }
+
+      function unplaceFrom(p, chip) {
+        if (!G || !G.running || G.paused || p.locked) return;
+        var row = $("answer-" + p.team);
+        var chips = Array.prototype.slice.call(row.children);
+        var idx = chips.indexOf(chip);
+        if (idx < 0) return;
+        for (var i = p.placed.length - 1; i >= idx; i--) {
+          p.placed[i].classList.remove("used");
+          row.removeChild(chips[i]);
+        }
+        p.placed.length = idx;
+      }
+
+      function clearPlaced(p) {
+        if (!G || p.locked) return;
+        p.placed.forEach(function (b) { b.classList.remove("used"); });
+        p.placed = [];
+        $("answer-" + p.team).innerHTML = "";
+      }
+
+      /* 连击加成：倍率与出兵 */
+      function comboMult(combo) { return 1 + Math.min(Math.max(combo - 1, 0), 5) * 0.25; }
+
+      function checkAnswer(p) {
+        if (!G || !G.running) return;
+        var ok = p.placed.every(function (b, i) {
+          return b.dataset.correct === "1" && b.dataset.word === p.current.words[i];
+        });
+        if (ok) {
+          p.locked = true;
+          p.right++;
+          p.combo++;
+          p.maxCombo = Math.max(p.maxCombo, p.combo);
+          p.energy = Math.min(MAXENERGY, p.energy + 1);
+          var mult = comboMult(p.combo);
+          var gain = Math.round((10 + (p.current.words.length - 2)) * mult);
+          p.score += gain;
+          sndCorrect();
+          floatScore(p.team, "+" + gain + (p.combo >= 2 ? " 连击×" + p.combo : ""));
+          $("panel-" + p.team).classList.add("correct-flash");
+          setTimeout(function () { $("panel-" + p.team).classList.remove("correct-flash"); }, 420);
+          spawnSquad(p.team, p.combo, mult);
+          updateHUD();
+          updateCombo(p);
+          setTimeout(function () { if (G && G.running) nextQuestion(p); }, 480);
+        } else {
+          p.wrong++;
+          p.combo = 0;
+          sndWrong();
+          floatScore(p.team, "连击中断");
+          var chips = $("answer-" + p.team).children;
+          for (var i = 0; i < chips.length; i++) chips[i].classList.add("wrong-flash");
+          updateCombo(p);
+          setTimeout(function () { if (G && G.running) clearPlaced(p); }, 380);
+        }
+      }
+
+      function updateCombo(p) {
+        var el = $("combo-" + p.team);
+        if (p.combo >= 8) {
+          el.innerHTML = "连击 ×" + p.combo + " ★★★★★" + '<span class="tier">狂热：双倍出兵！</span>';
+        } else if (p.combo >= 5) {
+          el.innerHTML = "连击 ×" + p.combo + " ★★★★★" + '<span class="tier">法师已加入队伍</span>';
+        } else if (p.combo >= 3) {
+          el.innerHTML = "连击 ×" + p.combo + " ★★★" + '<span class="tier">骑士已加入队伍</span>';
+        } else if (p.combo >= 2) {
+          el.innerHTML = "连击 ×" + p.combo + " ★★" + '<span class="tier">得分与伤害提升中</span>';
+        } else {
+          el.textContent = p.combo === 1 ? "答对啦！" : "";
+        }
+      }
+
+      /* ================= 战场：小兵互相对抗 ================= */
+      var soldiers = []; // {el, team, kind, x(%), hp, maxHp, atk, range(px), state, nextAtk}
+      var battleTimer = null;
+      var UNIT = {
+        footman: { hp: 2, atk: 1, range: 36, castleDmg: 3 },
+        knight: { hp: 5, atk: 2, range: 38, castleDmg: 5 },
+        mage: { hp: 2, atk: 1, range: 95, castleDmg: 4 }
+      };
+
+      function spawnSquad(team, combo, mult) {
+        var kinds = ["footman", "footman"];
+        if (combo >= 3) kinds.push("knight");
+        if (combo >= 5) kinds.push("mage");
+        var frenzy = combo >= 8;
+        var horn = G && G.hornUntil && Date.now() < G.hornUntil;
+        if (frenzy || horn) kinds = kinds.concat(["footman", "footman"]);
+        kinds.forEach(function (kind, i) {
+          if (soldiers.filter(function (s) { return s.team === team && s.state !== "dead"; }).length >= 14) return;
+          var u = UNIT[kind];
+          var el = document.createElement("div");
+          el.className = "soldier spawn " + team;
+          el.innerHTML = '<span class="minihp"></span>' + spriteSVG(team, kind);
+          el.style.bottom = (14 + Math.random() * 4) + "%";
+          $("soldiers").appendChild(el);
+          var s = {
+            el: el, team: team, kind: kind,
+            x: team === "red" ? 11.5 - i * 1.4 : 88.5 + i * 1.4,
+            hp: u.hp, maxHp: u.hp,
+            atk: Math.max(1, Math.round(u.atk * (mult || 1))),
+            range: u.range, castleDmg: Math.round(u.castleDmg * (mult || 1)),
+            state: "march", nextAtk: 0
+          };
+          soldiers.push(s);
+          renderMiniHp(s);
+          el.style.left = "calc(" + s.x + "% - 17px)";
+        });
+      }
+
+      function renderMiniHp(s) {
+        var bar = s.el.querySelector(".minihp");
+        if (!bar) return;
+        var html = "";
+        for (var i = 0; i < s.maxHp; i++) html += '<i class="' + (i < s.hp ? "" : "lost") + '"></i>';
+        bar.innerHTML = html;
+      }
+
+      function fxAt(cls, text, xPct, bottomPct) {
+        var el = document.createElement("div");
+        el.className = cls;
+        el.textContent = text;
+        el.style.left = "calc(" + xPct + "% - 12px)";
+        el.style.bottom = bottomPct + "%";
+        $("fx").appendChild(el);
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 850);
+      }
+
+      function damageSoldier(target, dmg, attacker) {
+        if (target.state === "dead" || target.state === "gone") return;
+        target.hp -= dmg;
+        renderMiniHp(target);
+        fxAt("dmgnum", "-" + dmg, target.x, 30);
+        if (target.hp <= 0) {
+          killSoldier(target);
+          if (attacker && G) {
+            var ap = attacker.team === "red" ? G.red : G.blue;
+            ap.kills++;
+          }
+        }
+      }
+
+      function battleTick() {
+        if (!G || !G.running || G.paused) return;
+        var speed = 0.5; // 每 50ms 移动的百分比
+        var fieldW = $("field").clientWidth || 800;
+        var now = Date.now();
+        soldiers.slice().forEach(function (s) {
+          if (s.state === "dead" || s.state === "gone") return;
+          // 找射程内最近的敌人
+          var foe = null, best = Infinity;
+          soldiers.forEach(function (o) {
+            if (o.team === s.team || o.state === "dead" || o.state === "gone") return;
+            var d = Math.abs(o.x - s.x) / 100 * fieldW;
+            // 敌人必须在自己前方（或已交错一点点）
+            var ahead = s.team === "red" ? (o.x >= s.x - 1.2) : (o.x <= s.x + 1.2);
+            if (ahead && d < best) { best = d; foe = o; }
+          });
+          if (foe && best <= s.range) {
+            s.el.classList.add("fighting");
+            if (now >= s.nextAtk) {
+              s.nextAtk = now + 520 + Math.random() * 260;
+              sndSlash();
+              fxAt("slash", s.kind === "mage" ? "✦" : "⚔", (s.x + foe.x) / 2, 27);
+              damageSoldier(foe, s.atk, s);
+            }
+            return;
+          }
+          s.el.classList.remove("fighting");
+          s.x += s.team === "red" ? speed : -speed;
+          if ((s.team === "red" && s.x >= 90.5) || (s.team === "blue" && s.x <= 9.5)) {
+            hitCastle(s.team === "red" ? "blue" : "red", s.castleDmg, s.x);
+            removeSoldier(s);
+            return;
+          }
+          s.el.style.left = "calc(" + s.x + "% - 17px)";
+        });
+        soldiers = soldiers.filter(function (s) { return s.state !== "gone"; });
+      }
+
+      function killSoldier(s) {
+        if (s.state === "dead") return;
+        s.state = "dead";
+        s.el.classList.remove("fighting");
+        s.el.classList.add("dead");
+        setTimeout(function () { removeSoldier(s); }, 460);
+      }
+      function removeSoldier(s) {
+        s.state = "gone";
+        if (s.el.parentNode) s.el.parentNode.removeChild(s.el);
+      }
+
+      function hitCastle(defTeam, dmg, atX) {
+        if (!G || !G.running) return;
+        var def = defTeam === "red" ? G.red : G.blue;
+        def.hp = Math.max(0, def.hp - dmg);
+        sndHit();
+        var castle = $("castle-" + defTeam);
+        castle.classList.remove("hit");
+        void castle.offsetWidth;
+        castle.classList.add("hit");
+        fxAt("boom", "砰!", atX, 30);
+        updateHUD();
+        if (def.hp <= 0) endGame(defTeam === "red" ? "blue" : "red", "castle");
+      }
+
+      function floatScore(team, text) {
+        var el = document.createElement("div");
+        el.className = "float-score " + team;
+        el.textContent = text;
+        if (team === "red") el.style.left = "15%"; else el.style.right = "15%";
+        el.style.top = "6%";
+        $("field").appendChild(el);
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1000);
+      }
+
+      function midBanner(text) {
+        var old = $("mid-banner");
+        if (old) old.remove();
+        var el = document.createElement("div");
+        el.id = "mid-banner";
+        el.textContent = text;
+        $("field").appendChild(el);
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 2650);
+      }
+
+      /* ================= 能量技能 ================= */
+      function castSkill(p, kind) {
+        if (!G || !G.running || G.paused) return;
+        if (settings.mode === "cpu" && p.team === "blue") return; // 电脑技能由 AI 触发
+        doSkill(p, kind);
+      }
+      function doSkill(p, kind) {
+        var enemyTeam = p.team === "red" ? "blue" : "red";
+        var enemy = enemyTeam === "red" ? G.red : G.blue;
+        if (kind === "fire") {
+          if (p.energy < 3) return;
+          p.energy -= 3;
+          sndFire();
+          midBanner(p.name + " 释放火球术！");
+          fxAt("boom", "轰!", enemyTeam === "red" ? 8 : 92, 40);
+          enemy.hp = Math.max(0, enemy.hp - 5);
+          // 火球顺带击破一个最靠前的敌方小兵
+          var front = null;
+          soldiers.forEach(function (s) {
+            if (s.team !== enemyTeam || s.state === "dead" || s.state === "gone") return;
+            if (!front || (enemyTeam === "red" ? s.x < front.x : s.x > front.x)) front = s;
+          });
+          if (front) damageSoldier(front, 2, null);
+          var castle = $("castle-" + enemyTeam);
+          castle.classList.remove("hit"); void castle.offsetWidth; castle.classList.add("hit");
+          updateHUD();
+          if (enemy.hp <= 0) endGame(p.team, "castle");
+        } else if (kind === "heal") {
+          if (p.energy < 2 || p.hp >= MAXHP) return;
+          p.energy -= 2;
+          p.hp = Math.min(MAXHP, p.hp + 7);
+          sndHeal();
+          midBanner(p.name + " 施展治疗术 +7");
+          updateHUD();
+        }
+        updateSkillBtns();
+      }
+      function updateSkillBtns() {
+        if (!G) return;
+        ["red", "blue"].forEach(function (t) {
+          var p = t === "red" ? G.red : G.blue;
+          $("skill-fire-" + t).disabled = !(G.running && p.energy >= 3);
+          $("skill-heal-" + t).disabled = !(G.running && p.energy >= 2 && p.hp < MAXHP);
+        });
+      }
+
+      /* ================= HUD / 计时 / 号角事件 ================= */
+      function updateHUD() {
+        if (!G) return;
+        ["red", "blue"].forEach(function (t) {
+          var p = t === "red" ? G.red : G.blue;
+          $("hp-" + t).style.width = p.hp + "%";
+          $("hptext-" + t).textContent = p.hp;
+          $("score-" + t).textContent = p.score;
+          var pips = "";
+          for (var i = 0; i < MAXENERGY; i++) pips += '<span class="epip' + (i < p.energy ? " on" : "") + '"></span>';
+          $("epips-" + t).innerHTML = pips;
+        });
+        $("timer").textContent = fmtTime(G.timeLeft);
+        $("timer").classList.toggle("low", G.timeLeft <= 10 && G.running);
+        updateSkillBtns();
+      }
+
+      var clockTimer = null;
+      function clockTick() {
+        if (!G || !G.running || G.paused) return;
+        G.timeLeft--;
+        // 冲锋号角：每 45 秒吹响一次，10 秒双倍出兵
+        if (G.timeLeft > 0 && (settings.time - G.timeLeft) % 45 === 0 && G.timeLeft !== settings.time) {
+          G.hornUntil = Date.now() + 10000;
+          sndHorn();
+          midBanner("冲锋号角！10 秒内答对出兵翻倍");
+        }
+        if (G.hornUntil) {
+          var left = Math.ceil((G.hornUntil - Date.now()) / 1000);
+          $("event-banner").textContent = left > 0 ? "号角冲锋中 · 剩 " + left + " 秒" : "";
+          if (left <= 0) G.hornUntil = 0;
+        }
+        updateHUD();
+        if (G.timeLeft <= 0) {
+          var winner = "draw";
+          if (G.red.hp !== G.blue.hp) winner = G.red.hp > G.blue.hp ? "red" : "blue";
+          else if (G.red.score !== G.blue.score) winner = G.red.score > G.blue.score ? "red" : "blue";
+          endGame(winner, "time");
+        }
+      }
+
+      /* ================= 电脑 AI（蓝队） ================= */
+      var CPU_CONF = {
+        easy: { think: [4200, 6500], step: 900, winRate: 0.78 },
+        normal: { think: [2600, 4200], step: 620, winRate: 0.86 },
+        hard: { think: [1500, 2600], step: 400, winRate: 0.93 }
+      };
+      function cpuPlay(p) {
+        if (settings.mode !== "cpu") return;
+        var conf = CPU_CONF[settings.diff];
+        var think = conf.think[0] + Math.random() * (conf.think[1] - conf.think[0]);
+        p.cpuTimer = setTimeout(function () {
+          if (!G || !G.running || p !== G.blue) return;
+          // 电脑偶尔放技能
+          if (p.energy >= 3 && Math.random() < 0.6) doSkill(p, "fire");
+          else if (p.energy >= 2 && p.hp <= 55 && Math.random() < 0.6) doSkill(p, "heal");
+          var total = p.current.words.length;
+          var willWin = Math.random() < conf.winRate;
+          var step = 0;
+          var iv = setInterval(function () {
+            if (!G || !G.running) { clearInterval(iv); return; }
+            if (G.paused || p.locked) return;
+            if (step < total) {
+              var tiles = $("tiles-blue").children;
+              var wantText = p.current.words[step];
+              var chosen = null;
+              for (var i = 0; i < tiles.length; i++) {
+                if (!tiles[i].classList.contains("used") && tiles[i].dataset.correct === "1" && tiles[i].dataset.word === wantText) { chosen = tiles[i]; break; }
+              }
+              if (!willWin && step === total - 1) {
+                for (var j = 0; j < tiles.length; j++) {
+                  if (!tiles[j].classList.contains("used") && tiles[j].dataset.correct === "0") { chosen = tiles[j]; break; }
+                }
+              }
+              if (chosen) pickTile(p, chosen);
+              step++;
+            } else {
+              clearInterval(iv);
+              if (G && G.running && p === G.blue) cpuPlay(p);
+            }
+          }, conf.step);
+          p.cpuInterval = iv;
+        }, think);
+      }
+
+      /* ================= 流程控制 ================= */
+      function readNames() {
+        names.red = ($("name-red").value || "").trim() || "红队骑士";
+        names.blue = settings.mode === "cpu" ? "电脑法师" : (($("name-blue").value || "").trim() || "蓝队骑士");
+        $("name-blue").disabled = settings.mode === "cpu";
+        if (settings.mode === "cpu") $("name-blue").value = "电脑法师";
+        $("hud-name-red").textContent = names.red;
+        $("hud-name-blue").textContent = names.blue;
+        $("tag-red").textContent = names.red;
+        $("tag-blue").textContent = names.blue;
+      }
+
+      function startGame() {
+        readNames();
+        soldiers.slice().forEach(removeSoldier);
+        soldiers = [];
+        if (battleTimer) clearInterval(battleTimer);
+        if (clockTimer) clearInterval(clockTimer);
+        G = {
+          red: newPlayer("red"), blue: newPlayer("blue"),
+          timeLeft: settings.time, running: false, paused: false, over: false,
+          hornUntil: 0
+        };
+        ["red", "blue"].forEach(function (t) {
+          $("castle-" + t).classList.remove("destroyed", "hit");
+          $("panel-" + t).classList.remove("locked");
+        });
+        $("event-banner").textContent = "";
+        $("cpu-note").classList.toggle("hidden", settings.mode !== "cpu");
+        ["fire", "heal"].forEach(function (k) {
+          $("skill-" + k + "-blue").style.visibility = settings.mode === "cpu" ? "hidden" : "visible";
+        });
+        $("clear-blue").style.visibility = settings.mode === "cpu" ? "hidden" : "visible";
+        $("panel-blue").classList.toggle("locked", settings.mode === "cpu");
+        if (settings.mode === "cpu") {
+          // CPU 面板锁定会连技能按钮一起禁用交互，但电脑技能走 doSkill 内部逻辑不受影响
+          $("panel-blue").classList.remove("locked");
+          $("tiles-blue").style.pointerEvents = "none";
+          $("answer-blue").style.pointerEvents = "none";
+        } else {
+          $("tiles-blue").style.pointerEvents = "";
+          $("answer-blue").style.pointerEvents = "";
+        }
+        updateHUD();
+        nextQuestion(G.red);
+        nextQuestion(G.blue);
+        $("start-screen").classList.add("hidden");
+        $("end-screen").classList.add("hidden");
+        $("lb-screen").classList.add("hidden");
+        $("pause-btn").textContent = "暂停";
+        var cd = $("countdown-screen"), num = $("countdown-num");
+        cd.classList.remove("hidden");
+        var seq = ["3", "2", "1", "GO!"];
+        var i = 0;
+        num.textContent = seq[0];
+        beep(440, .15, "square", .07, 0);
+        var cdIv = setInterval(function () {
+          i++;
+          if (i >= seq.length) {
+            clearInterval(cdIv);
+            cd.classList.add("hidden");
+            G.running = true;
+            battleTimer = setInterval(battleTick, 50);
+            clockTimer = setInterval(clockTick, 1000);
+            updateSkillBtns();
+            if (settings.mode === "cpu") cpuPlay(G.blue);
+            return;
+          }
+          num.textContent = seq[i];
+          num.style.animation = "none"; void num.offsetWidth; num.style.animation = "";
+          beep(seq[i] === "GO!" ? 880 : 440, .15, "square", .07, 0);
+        }, 800);
+      }
+
+      function endGame(winner, reason) {
+        if (!G || G.over) return;
+        G.over = true; G.running = false;
+        if (battleTimer) clearInterval(battleTimer);
+        if (clockTimer) clearInterval(clockTimer);
+        [G.red, G.blue].forEach(function (p) {
+          if (p.cpuTimer) clearTimeout(p.cpuTimer);
+          if (p.cpuInterval) clearInterval(p.cpuInterval);
+        });
+        updateSkillBtns();
+        if (reason === "castle") {
+          var loser = winner === "red" ? "blue" : "red";
+          $("castle-" + loser).classList.add("destroyed");
+        }
+        // 记录排行榜
+        lbRecord(G.red, winner === "red", winner === "draw");
+        lbRecord(G.blue, winner === "blue", winner === "draw");
+        var banner = $("winner-banner");
+        if (winner === "draw") {
+          banner.textContent = "平局！";
+          banner.className = "draw";
+          banner.id = "winner-banner";
+          $("end-reason").textContent = "时间到 —— 双方血量和得分都相同";
+        } else {
+          var wname = winner === "red" ? G.red.name : G.blue.name;
+          var lname = winner === "red" ? G.blue.name : G.red.name;
+          banner.textContent = wname + " 获胜！";
+          banner.className = winner;
+          banner.id = "winner-banner";
+          $("end-reason").textContent = reason === "castle"
+            ? lname + " 的城堡被攻破"
+            : "时间到 —— 按剩余血量和得分判定";
+          sndWin();
+        }
+        ["red", "blue"].forEach(function (t) {
+          var p = t === "red" ? G.red : G.blue;
+          var total = p.right + p.wrong;
+          $("stat-score-" + t).textContent = p.score;
+          $("stat-right-" + t).textContent = p.right;
+          $("stat-acc-" + t).textContent = total ? Math.round(p.right / total * 100) + "%" : "—";
+          $("stat-combo-" + t).textContent = "×" + p.maxCombo;
+          $("stat-kill-" + t).textContent = p.kills;
+          $("stat-hp-" + t).textContent = p.hp;
+        });
+        setTimeout(function () { $("end-screen").classList.remove("hidden"); }, reason === "castle" ? 900 : 350);
+      }
+
+      /* ================= 界面绑定 ================= */
+      function segBind(id, attr, selClass, cb) {
+        var seg = $(id);
+        seg.addEventListener("click", function (e) {
+          var btn = e.target.closest("button");
+          if (!btn) return;
+          Array.prototype.forEach.call(seg.children, function (b) {
+            b.classList.remove("sel-red", "sel-blue", "sel-gold");
+          });
+          btn.classList.add(selClass);
+          cb(btn.dataset[attr]);
+          beep(520, .06, "square", .05, 0);
+        });
+      }
+      segBind("mode-seg", "mode", "sel-red", function (v) {
+        settings.mode = v;
+        $("diff-group").classList.toggle("hidden", v !== "cpu");
+        $("name-blue").disabled = v === "cpu";
+        if (v === "cpu") { $("name-blue").dataset.prev = $("name-blue").value; $("name-blue").value = "电脑法师"; }
+        else if ($("name-blue").dataset.prev) $("name-blue").value = $("name-blue").dataset.prev;
+      });
+      segBind("diff-seg", "diff", "sel-blue", function (v) { settings.diff = v; });
+      segBind("qtype-seg", "qtype", "sel-gold", function (v) { settings.qtype = v; });
+      segBind("time-seg", "time", "sel-gold", function (v) { settings.time = parseInt(v, 10); });
+
+      $("start-btn").addEventListener("click", startGame);
+      $("again-btn").addEventListener("click", startGame);
+      $("menu-btn").addEventListener("click", function () {
+        $("end-screen").classList.add("hidden");
+        $("start-screen").classList.remove("hidden");
+      });
+      $("lb-open-btn").addEventListener("click", function () {
+        renderLeaderboard();
+        $("lb-screen").classList.remove("hidden");
+      });
+      $("end-lb-btn").addEventListener("click", function () {
+        renderLeaderboard();
+        $("lb-screen").classList.remove("hidden");
+      });
+      $("lb-close-btn").addEventListener("click", function () {
+        $("lb-screen").classList.add("hidden");
+      });
+      $("clear-red").addEventListener("click", function () { if (G) clearPlaced(G.red); });
+      $("clear-blue").addEventListener("click", function () { if (G) clearPlaced(G.blue); });
+      ["red", "blue"].forEach(function (t) {
+        $("skill-fire-" + t).addEventListener("click", function () { if (G) castSkill(t === "red" ? G.red : G.blue, "fire"); });
+        $("skill-heal-" + t).addEventListener("click", function () { if (G) castSkill(t === "red" ? G.red : G.blue, "heal"); });
+      });
+      $("pause-btn").addEventListener("click", function () {
+        if (!G || !G.running) return;
+        G.paused = !G.paused;
+        this.textContent = G.paused ? "继续" : "暂停";
+      });
+      $("sound-btn").addEventListener("click", function () {
+        soundOn = !soundOn;
+        this.textContent = soundOn ? "音效：开" : "音效：关";
+        if (soundOn) beep(660, .08, "square", .06, 0);
+      });
+
+      /* 键盘选词：红队 1-8，蓝队 QWERTYUI */
+      document.addEventListener("keydown", function (e) {
+        if (!G || !G.running || G.paused) return;
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+        var k = e.key.toUpperCase();
+        var team = null, idx = -1;
+        if (/^[1-8]$/.test(k)) { team = "red"; idx = parseInt(k, 10) - 1; }
+        else if ("QWERTYUI".indexOf(k) >= 0) { team = "blue"; idx = "QWERTYUI".indexOf(k); }
+        if (!team) return;
+        if (team === "blue" && settings.mode === "cpu") return;
+        var tiles = $("tiles-" + team).children;
+        if (tiles[idx] && !tiles[idx].classList.contains("used")) {
+          pickTile(team === "red" ? G.red : G.blue, tiles[idx]);
+        }
+      });
+
+      /* 初始 HUD */
+      (function initEpips() {
+        ["red", "blue"].forEach(function (t) {
+          var pips = "";
+          for (var i = 0; i < MAXENERGY; i++) pips += '<span class="epip"></span>';
+          $("epips-" + t).innerHTML = pips;
+        });
+      })();
+      G = { red: newPlayer("red"), blue: newPlayer("blue"), timeLeft: settings.time, running: false, paused: false, over: false, hornUntil: 0 };
+      updateHUD();
+    </script>
+  </body>
+</html>
